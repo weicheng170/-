@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>分子振動模型 | Diatomic Vibration Simulator</title>
+  <style>
+    :root{
+      --bg:#0b1020;--panel:#121a2f;--accent:#66e3ff;--muted:#9fb0d1;--text:#e9f1ff;--danger:#ff6b8b;--ok:#50fa7b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:radial-gradient(1200px 700px at 70% -10%, #1a2444 0%, #0b1020 45%) fixed;color:var(--text);font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Noto Sans TC, Helvetica, Arial}
+    header{padding:18px 20px 8px}
+    h1{margin:0 0 4px;font-weight:800;letter-spacing:.3px}
+    .sub{opacity:.7;font-size:14px}
+    .wrap{display:grid;grid-template-columns: 380px 1fr; gap:18px; padding:16px 18px 24px}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+    .controls{padding:14px 14px 6px; max-height:78vh; overflow:auto}
+    .controls h3{margin:10px 6px 8px;opacity:.9}
+    .row{display:grid; grid-template-columns: 1fr 70px; gap:8px; align-items:center; padding:8px 10px; border-radius:10px}
+    .row:hover{background:rgba(255,255,255,.04)}
+    label{display:block;font-size:13px;color:var(--muted)}
+    input[type="range"]{width:100%}
+    input[type="number"]{width:100%; background:#0e162c; color:var(--text); border:1px solid rgba(255,255,255,.13); border-radius:8px; padding:6px 8px}
+    .btns{display:flex; gap:8px; padding:10px}
+    button{flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.2); background:#0e162b; color:var(--text); cursor:pointer; font-weight:700}
+    button.primary{background:linear-gradient(180deg,#1f9fcb,#1979a2); border-color:#1f9fcb}
+    button.warn{background:linear-gradient(180deg,#cc3e61,#9f2d49); border-color:#d74f72}
+    button:disabled{opacity:.6; cursor:not-allowed}
+
+    .scene{display:grid; grid-template-rows: minmax(360px, 56vh) 180px; gap:12px; padding:10px}
+    canvas{width:100%; height:100%; display:block; border-radius:14px; background:radial-gradient(900px 600px at 60% -20%, #172143 0%, #0c1226 40%, #0a0f1f 100%); box-shadow: inset 0 0 40px rgba(0,0,0,.45)}
+    .stats{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.06), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:10px 12px}
+    .kpi{font-size:20px; font-weight:800}
+    .unit{font-size:12px; color:var(--muted)}
+    .bar{height:10px; background:rgba(255,255,255,.1); border-radius:99px; overflow:hidden; margin-top:6px}
+    .bar>i{display:block; height:100%}
+
+    .legend{display:flex; gap:16px; align-items:center; padding:0 10px 10px}
+    .dot{width:10px; height:10px; border-radius:50%}
+    .dot.k{background:#7ad87a}
+    .dot.u{background:#ff8ab4}
+    .dot.e{background:#66e3ff}
+
+    footer{padding:12px 20px 24px; color:var(--muted); font-size:13px}
+    a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>分子振動模型 (Diatomic Vibration)</h1>
+    <div class="sub">兩原子以彈簧相連，沿鍵軸的一維振動。支援質量差、彈常數、阻尼、平衡鍵長與初始位移/速度設定。
+    <br>方程：<code>μ x¨ + c x˙ + k x = 0</code>，其中 <code>μ = m₁ m₂/(m₁+m₂)</code>，<code>x</code> 為相對位移。
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="panel controls" id="controls">
+      <h3>參數 (可即時調整)</h3>
+
+      <div class="row">
+        <div>
+          <label>質量 m₁ (amu)</label>
+          <input type="range" id="m1" min="1" max="200" step="1" value="16" />
+        </div>
+        <input type="number" id="m1n" min="1" max="200" step="1" value="16" />
+      </div>
+
+      <div class="row">
+        <div>
+          <label>質量 m₂ (amu)</label>
+          <input type="range" id="m2" min="1" max="200" step="1" value="1" />
+        </div>
+        <input type="number" id="m2n" min="1" max="200" step="1" value="1" />
+      </div>
+
+      <div class="row">
+        <div>
+          <label>彈簧常數 k (N/m — 相對單位)</label>
+          <input type="range" id="k" min="1" max="2000" step="1" value="400" />
+        </div>
+        <input type="number" id="kn" min="1" max="2000" step="1" value="400" />
+      </div>
+
+      <div class="row">
+        <div>
+          <label>阻尼 c (kg/s — 相對單位)</label>
+          <input type="range" id="c" min="0" max="50" step="0.5" value="0" />
+        </div>
+        <input type="number" id="cn" min="0" max="50" step="0.5" value="0" />
+      </div>
+
+      <div class="row">
+        <div>
+          <label>平衡鍵長 L₀ (Å — 相對單位)</label>
+          <input type="range" id="L0" min="20" max="220" step="1" value="120" />
+        </div>
+        <input type="number" id="L0n" min="20" max="220" step="1" value="120" />
+      </div>
+
+      <div class="row">
+        <div>
+          <label>初始位移 x₀ (Å，相對於 L₀)</label>
+          <input type="range" id="x0" min="-60" max="60" step="1" value="30" />
+        </div>
+        <input type="number" id="x0n" min="-60" max="60" step="1" value="30" />
+      </div>
+
+      <div class="row">
+        <div>
+          <label>初始速度 v₀ (Å/ps — 相對單位)</label>
+          <input type="range" id="v0" min="-200" max="200" step="1" value="0" />
+        </div>
+        <input type="number" id="v0n" min="-200" max="200" step="1" value="0" />
+      </div>
+
+      <div class="row">
+        <div>
+          <label>時間步長 dt (ps)</label>
+          <input type="range" id="dt" min="0.1" max="5" step="0.1" value="1.0" />
+        </div>
+        <input type="number" id="dtn" min="0.1" max="5" step="0.1" value="1.0" />
+      </div>
+
+      <div class="btns">
+        <button id="play" class="primary">▶  開始 / 暫停</button>
+        <button id="reset">⟲ 重設</button>
+        <button id="energy" title="能量顯示切換">Σ 能量</button>
+        <button id="damp" class="warn" title="快速加阻尼以收斂">☔ 快速阻尼</button>
+      </div>
+
+      <div style="padding:6px 12px 12px; font-size:13px; color:var(--muted)">
+        小技巧：將 <b>m₁=16, m₂=1</b> 模擬 <i>OH</i>；或 <b>m₁=12, m₂=16</b> 模擬 <i>CO</i>。改變 <b>k</b> 可對應鍵強度，<b>c</b> 代表環境阻尼。
+      </div>
+    </section>
+
+    <section class="panel scene">
+      <div class="legend">
+        <span class="dot k"></span><span>動能 K</span>
+        <span class="dot u"></span><span>位能 U</span>
+        <span class="dot e"></span><span>總能 E</span>
+      </div>
+      <canvas id="sim"></canvas>
+      <div class="stats">
+        <div class="card"><div>角頻率 ω ≈ <span class="kpi" id="omega">—</span> <span class="unit">(相對單位)</span></div><div class="bar"><i id="wbar"></i></div></div>
+        <div class="card"><div>動能 K = <span class="kpi" id="K">—</span></div><div class="bar"><i id="kbar"></i></div></div>
+        <div class="card"><div>位能 U = <span class="kpi" id="U">—</span></div><div class="bar"><i id="ubar"></i></div></div>
+        <div class="card"><div>總能 E = <span class="kpi" id="E">—</span></div><div class="bar"><i id="ebar"></i></div></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    © 2025 Diatomic Vibration • 教學用相對單位。模型：相對座標 <code>x</code> 的 RK4 積分；個別原子位置由質心守恆推回：
+    <code>d₁ = m₂/(m₁+m₂)·(L₀+x)</code>、<code>d₂ = m₁/(m₁+m₂)·(L₀+x)</code>。
+  </footer>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+
+    // --- UI wiring: keep sliders and number inputs in sync
+    const pairs = [["m1","m1n"],["m2","m2n"],["k","kn"],["c","cn"],["L0","L0n"],["x0","x0n"],["v0","v0n"],["dt","dtn"]];
+    for(const [r,n] of pairs){
+      const R=$(r), N=$(n);
+      const sync = (a,b)=>()=>{ b.value=a.value; changed(); };
+      R.addEventListener('input', sync(R,N));
+      N.addEventListener('input', ()=>{ R.value=N.value; changed(); });
+    }
+
+    // --- Simulation state (relative coordinate x)
+    let state = {
+      x: parseFloat($("x0").value),
+      v: parseFloat($("v0").value),
+      t: 0
+    };
+
+    function params(){
+      const m1=+$("m1").value, m2=+$("m2").value;
+      const mu = m1*m2/(m1+m2);
+      const k=+$("k").value, c=+$("c").value;
+      const L0=+$("L0").value, dt=+$("dt").value*0.001; // smaller numerical dt (scale ps→ns)
+      return {m1,m2,mu,k,c,L0,dt};
+    }
+
+    // --- RK4 for x'' = -(c/μ) x' -(k/μ) x
+    function deriv(p, s){
+      return { dx: s.v, dv: (-(p.c/p.mu)*s.v - (p.k/p.mu)*s.x) };
+    }
+
+    function rk4Step(p, s, h){
+      const k1 = deriv(p,s);
+      const s2 = { x: s.x + 0.5*h*k1.dx, v: s.v + 0.5*h*k1.dv };
+      const k2 = deriv(p,s2);
+      const s3 = { x: s.x + 0.5*h*k2.dx, v: s.v + 0.5*h*k2.dv };
+      const k3 = deriv(p,s3);
+      const s4 = { x: s.x + h*k3.dx, v: s.v + h*k3.dv };
+      const k4 = deriv(p,s4);
+      s.x += (h/6)*(k1.dx + 2*k2.dx + 2*k3.dx + k4.dx);
+      s.v += (h/6)*(k1.dv + 2*k2.dv + 2*k3.dv + k4.dv);
+      s.t += h;
+    }
+
+    // --- Canvas rendering
+    const cvs = $("sim"), ctx = cvs.getContext('2d');
+    const DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    function resize(){
+      const r = cvs.getBoundingClientRect();
+      cvs.width = Math.floor(r.width*DPR);
+      cvs.height = Math.floor(r.height*DPR);
+    }
+    window.addEventListener('resize', resize); resize();
+
+    function drawAtom(x,y,r,fill){
+      const g = ctx.createRadialGradient(x-r*0.4,y-r*0.6, r*0.2, x,y,r);
+      g.addColorStop(0, fill);
+      g.addColorStop(1, '#0a1122');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = r*0.08; ctx.stroke();
+    }
+
+    function drawSpring(x1,y1,x2,y2,n=16){
+      const dx = x2-x1, dy=y2-y1; const L = Math.hypot(dx,dy);
+      const ux=dx/L, uy=dy/L; const amp = Math.min(12*DPR, L*0.07);
+      const left = 18*DPR, right = 18*DPR;
+      const ax = x1+ux*left, ay=y1+uy*left; const bx = x2-ux*right, by=y2-uy*right;
+      ctx.strokeStyle = '#9fd3ff'; ctx.lineWidth = 2*DPR; ctx.beginPath(); ctx.moveTo(x1,y1);
+      ctx.lineTo(ax,ay);
+      for(let i=0;i<=n;i++){
+        const t=i/n; const px=ax + (bx-ax)*t; const py=ay + (by-ay)*t;
+        const nx=-uy, ny=ux; const s = (i%2?1:-1);
+        const off = (i===0||i===n)?0:amp*s;
+        ctx.lineTo(px+nx*off, py+ny*off);
+      }
+      ctx.lineTo(x2,y2); ctx.stroke();
+    }
+
+    // --- Energy bars
+    function setBar(id, frac){ $(id).style.width = (100*Math.max(0,Math.min(1,frac))).toFixed(1)+"%"; }
+
+    // --- Main animation
+    let playing = false, showEnergy=true, req=0;
+    const playBtn=$("play"), resetBtn=$("reset"), energyBtn=$("energy"), dampBtn=$("damp");
+
+    playBtn.onclick = ()=>{ playing = !playing; playBtn.textContent = playing? '⏸ 暫停':'▶ 開始'; if(playing) loop(); };
+    resetBtn.onclick = ()=>{ state.x=parseFloat($("x0").value); state.v=parseFloat($("v0").value); state.t=0; };
+    energyBtn.onclick = ()=>{ showEnergy=!showEnergy; energyBtn.style.opacity = showEnergy?1:0.5; };
+    dampBtn.onclick = ()=>{ $("c").value = $("cn").value = Math.max(+$("c").value, 20); changed(); };
+
+    function changed(){ if(!playing) render(); }
+
+    function render(){
+      const p = params();
+      // background
+      ctx.clearRect(0,0,cvs.width,cvs.height);
+
+      // geometry
+      const cx = cvs.width*0.5, cy = cvs.height*0.55;
+      const scale = Math.min(cvs.width*0.32, cvs.height*0.30);
+      const L = p.L0 + state.x; // current bond length in relative units
+      const d1 = (p.m2/(p.m1+p.m2))*L; // distance from COM for atom 1
+      const d2 = (p.m1/(p.m1+p.m2))*L; // distance from COM for atom 2
+      const x1 = cx - d1/ p.L0 * scale; // map to pixels roughly via L0 scale
+      const x2 = cx + d2/ p.L0 * scale;
+
+      // axis line
+      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1*DPR;
+      ctx.beginPath(); ctx.moveTo(cx - 0.65*scale, cy); ctx.lineTo(cx + 0.65*scale, cy); ctx.stroke();
+
+      // spring
+      drawSpring(x1, cy, x2, cy);
+
+      // atoms (radius ~ mass^(1/3))
+      const r1 = Math.max(10*DPR, 16*DPR*Math.cbrt(p.m1)/Math.cbrt(32));
+      const r2 = Math.max(10*DPR, 16*DPR*Math.cbrt(p.m2)/Math.cbrt(32));
+      drawAtom(x1, cy, r1, '#78e08f');
+      drawAtom(x2, cy, r2, '#ff9fbf');
+
+      // energy + readings
+      const K = 0.5*p.mu*state.v*state.v; // kinetic in relative coord
+      const U = 0.5*p.k*state.x*state.x;
+      const E = K+U;
+
+      $("K").textContent = K.toFixed(2);
+      $("U").textContent = U.toFixed(2);
+      $("E").textContent = E.toFixed(2);
+
+      // pseudo omega (underdamped): sqrt(k/μ - (c/2μ)^2) when positive
+      const und = (p.k/p.mu) - Math.pow(p.c/(2*p.mu),2);
+      const omega = und>0? Math.sqrt(und): 0;
+      $("omega").textContent = omega.toFixed(2);
+
+      // bars scale by a soft normalizer
+      const norm = 1 + E; // simple normalization
+      setBar("kbar", K/norm); setBar("ubar", U/norm); setBar("ebar", E/(norm*0.8));
+      setBar("wbar", Math.min(1, omega/50));
+
+      if(showEnergy){
+        // simple energy trails as vertical bars at top-right
+        const w = Math.min(160*DPR, cvs.width*0.18), h = 90*DPR, pad = 10*DPR;
+        const x = cvs.width - w - pad, y = pad;
+        ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x-6,y-6,w+12,h+12); ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.strokeRect(x-6,y-6,w+12,h+12);
+        const kf = Math.min(1, K/(norm));
+        const uf = Math.min(1, U/(norm));
+        const ef = Math.min(1, E/(norm*0.8));
+        ctx.fillStyle = '#7ad87a'; ctx.fillRect(x, y+h*(1-kf), w/3-6, h*kf);
+        ctx.fillStyle = '#ff8ab4'; ctx.fillRect(x+w/3, y+h*(1-uf), w/3-6, h*uf);
+        ctx.fillStyle = '#66e3ff'; ctx.fillRect(x+2*w/3, y+h*(1-ef), w/3-6, h*ef);
+      }
+
+      // labels
+      ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = `${12*DPR}px system-ui`;
+      ctx.fillText(`t = ${state.t.toFixed(3)} (arb.)`, 12*DPR, 18*DPR);
+      ctx.fillText(`x = ${state.x.toFixed(2)}  v = ${state.v.toFixed(2)}`, 12*DPR, 34*DPR);
+    }
+
+    function step(){
+      const p = params();
+      const substeps = 4; // improve stability
+      const h = p.dt / substeps;
+      for(let i=0;i<substeps;i++) rk4Step(p, state, h);
+    }
+
+    function loop(){
+      if(!playing){ cancelAnimationFrame(req); return; }
+      step(); render();
+      req = requestAnimationFrame(loop);
+    }
+
+    // init
+    render();
+    // keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      if(e.code==='Space'){ playBtn.click(); e.preventDefault(); }
+      if(e.key==='r'){ resetBtn.click(); }
+    });
+  </script>
+</body>
+</html>
