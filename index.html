@@ -3,339 +3,331 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>分子振動模型 | Diatomic Vibration Simulator</title>
+  <title>一維盒中粒子｜Infinite Square Well (1D)</title>
   <style>
     :root{
-      --bg:#0b1020;--panel:#121a2f;--accent:#66e3ff;--muted:#9fb0d1;--text:#e9f1ff;--danger:#ff6b8b;--ok:#50fa7b;
+      --bg:#0b1020;--panel:#121a2f;--accent:#66e3ff;--muted:#9fb0d1;--text:#e9f1ff;--good:#79e0a8;--warn:#ffd166;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:radial-gradient(1200px 700px at 70% -10%, #1a2444 0%, #0b1020 45%) fixed;color:var(--text);font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Noto Sans TC, Helvetica, Arial}
-    header{padding:18px 20px 8px}
-    h1{margin:0 0 4px;font-weight:800;letter-spacing:.3px}
-    .sub{opacity:.7;font-size:14px}
-    .wrap{display:grid;grid-template-columns: 380px 1fr; gap:18px; padding:16px 18px 24px}
-    .panel{background:linear-gradient(180deg,rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
-    .controls{padding:14px 14px 6px; max-height:78vh; overflow:auto}
-    .controls h3{margin:10px 6px 8px;opacity:.9}
-    .row{display:grid; grid-template-columns: 1fr 70px; gap:8px; align-items:center; padding:8px 10px; border-radius:10px}
+    body{margin:0;background:radial-gradient(1200px 700px at 70% -10%, #1a2444 0%, #0b1020 45%) fixed;color:var(--text);font:15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Noto Sans TC, Helvetica, Arial}
+    header{padding:16px 18px 8px}
+    h1{margin:0 0 4px;font-weight:800;letter-spacing:.2px}
+    .sub{opacity:.8;font-size:13px}
+    .wrap{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:12px 16px 20px}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 8px 26px rgba(0,0,0,.25)}
+    .controls{padding:12px;max-height:78vh;overflow:auto}
+
+    .row{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;padding:8px 10px;border-radius:10px}
     .row:hover{background:rgba(255,255,255,.04)}
-    label{display:block;font-size:13px;color:var(--muted)}
+    label{display:block;font-size:12px;color:var(--muted)}
     input[type="range"]{width:100%}
-    input[type="number"]{width:100%; background:#0e162c; color:var(--text); border:1px solid rgba(255,255,255,.13); border-radius:8px; padding:6px 8px}
-    .btns{display:flex; gap:8px; padding:10px}
-    button{flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.2); background:#0e162b; color:var(--text); cursor:pointer; font-weight:700}
-    button.primary{background:linear-gradient(180deg,#1f9fcb,#1979a2); border-color:#1f9fcb}
-    button.warn{background:linear-gradient(180deg,#cc3e61,#9f2d49); border-color:#d74f72}
-    button:disabled{opacity:.6; cursor:not-allowed}
+    input[type="number"], select{width:100%;background:#0e162c;color:var(--text);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px 8px}
+    .btns{display:flex;gap:8px;padding:8px 10px}
+    button{flex:1;padding:9px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#0f1730;color:var(--text);cursor:pointer;font-weight:700}
+    button.primary{background:linear-gradient(180deg,#1991c2,#156e98);border-color:#1991c2}
+    button.warn{background:linear-gradient(180deg,#c28a19,#966a15);border-color:#c28a19}
 
-    .scene{display:grid; grid-template-rows: minmax(360px, 56vh) 180px; gap:12px; padding:10px}
-    canvas{width:100%; height:100%; display:block; border-radius:14px; background:radial-gradient(900px 600px at 60% -20%, #172143 0%, #0c1226 40%, #0a0f1f 100%); box-shadow: inset 0 0 40px rgba(0,0,0,.45)}
-    .stats{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px}
+    .scene{display:grid;grid-template-rows:minmax(360px,56vh) 210px;gap:10px;padding:10px}
+    canvas{width:100%;height:100%;display:block;border-radius:14px;background:linear-gradient(180deg,#09132a,#0a1121);box-shadow:inset 0 0 40px rgba(0,0,0,.45)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     .card{background:linear-gradient(180deg,rgba(255,255,255,.06), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:10px 12px}
-    .kpi{font-size:20px; font-weight:800}
-    .unit{font-size:12px; color:var(--muted)}
-    .bar{height:10px; background:rgba(255,255,255,.1); border-radius:99px; overflow:hidden; margin-top:6px}
-    .bar>i{display:block; height:100%}
-
-    .legend{display:flex; gap:16px; align-items:center; padding:0 10px 10px}
-    .dot{width:10px; height:10px; border-radius:50%}
-    .dot.k{background:#7ad87a}
-    .dot.u{background:#ff8ab4}
-    .dot.e{background:#66e3ff}
-
-    footer{padding:12px 20px 24px; color:var(--muted); font-size:13px}
+    .kpi{font-size:20px;font-weight:800}
+    .unit{font-size:12px;color:var(--muted)}
+    .legend{display:flex;gap:16px;align-items:center;padding:6px 10px}
+    .dot{width:10px;height:10px;border-radius:50%}
+    .re{background:#9ee2ff}.im{background:#ffd166}.pr{background:#79e0a8}
+    footer{padding:10px 18px 20px;color:var(--muted);font-size:12px}
     a{color:var(--accent)}
   </style>
 </head>
 <body>
   <header>
-    <h1>分子振動模型 (Diatomic Vibration)</h1>
-    <div class="sub">兩原子以彈簧相連，沿鍵軸的一維振動。支援質量差、彈常數、阻尼、平衡鍵長與初始位移/速度設定。
-    <br>方程：<code>μ x¨ + c x˙ + k x = 0</code>，其中 <code>μ = m₁ m₂/(m₁+m₂)</code>，<code>x</code> 為相對位移。
-    </div>
+    <h1>一維盒中粒子（Infinite Square Well, 1D）</h1>
+    <div class="sub">邊界條件：<code>ψ(0,t)=ψ(L,t)=0</code>。本模擬使用能量本徵態疊加解析解：<code>ψ(x,t)=\sum_n c_n √(2/L) sin(nπx/L) e^{-iE_n t/ħ}</code>，其中 <code>E_n = n²π²ħ²/(2mL²)</code>。</div>
   </header>
 
   <div class="wrap">
-    <section class="panel controls" id="controls">
-      <h3>參數 (可即時調整)</h3>
+    <section class="panel controls">
+      <h3 style="margin:6px 10px 10px">參數</h3>
 
       <div class="row">
         <div>
-          <label>質量 m₁ (amu)</label>
-          <input type="range" id="m1" min="1" max="200" step="1" value="16" />
+          <label>盒長 L (相對單位)</label>
+          <input type="range" id="L" min="2" max="20" step="0.1" value="10" />
         </div>
-        <input type="number" id="m1n" min="1" max="200" step="1" value="16" />
+        <input type="number" id="Ln" min="2" max="20" step="0.1" value="10" />
       </div>
 
       <div class="row">
         <div>
-          <label>質量 m₂ (amu)</label>
-          <input type="range" id="m2" min="1" max="200" step="1" value="1" />
+          <label>質量 m (相對單位)</label>
+          <input type="range" id="m" min="0.2" max="10" step="0.1" value="1.0" />
         </div>
-        <input type="number" id="m2n" min="1" max="200" step="1" value="1" />
+        <input type="number" id="mn" min="0.2" max="10" step="0.1" value="1.0" />
       </div>
 
       <div class="row">
         <div>
-          <label>彈簧常數 k (N/m — 相對單位)</label>
-          <input type="range" id="k" min="1" max="2000" step="1" value="400" />
+          <label>最大展開模態 N_max</label>
+          <input type="range" id="Nmax" min="1" max="12" step="1" value="5" />
         </div>
-        <input type="number" id="kn" min="1" max="2000" step="1" value="400" />
+        <input type="number" id="Nmaxn" min="1" max="12" step="1" value="5" />
       </div>
 
       <div class="row">
         <div>
-          <label>阻尼 c (kg/s — 相對單位)</label>
-          <input type="range" id="c" min="0" max="50" step="0.5" value="0" />
+          <label>時間速度倍率 (播放速度)</label>
+          <input type="range" id="speed" min="0" max="4" step="0.05" value="1.00" />
         </div>
-        <input type="number" id="cn" min="0" max="50" step="0.5" value="0" />
+        <input type="number" id="speedn" min="0" max="4" step="0.05" value="1.00" />
       </div>
 
       <div class="row">
         <div>
-          <label>平衡鍵長 L₀ (Å — 相對單位)</label>
-          <input type="range" id="L0" min="20" max="220" step="1" value="120" />
+          <label>顯示</label>
+          <select id="view">
+            <option value="prob">機率密度 |ψ|²</option>
+            <option value="reim">實部 Re ψ 與 虛部 Im ψ</option>
+            <option value="both">同時顯示</option>
+          </select>
         </div>
-        <input type="number" id="L0n" min="20" max="220" step="1" value="120" />
+        <div></div>
       </div>
 
       <div class="row">
         <div>
-          <label>初始位移 x₀ (Å，相對於 L₀)</label>
-          <input type="range" id="x0" min="-60" max="60" step="1" value="30" />
+          <label>疊加模態係數（振幅）</label>
+          <input type="range" id="amps" min="0" max="1" step="0.01" value="1" />
         </div>
-        <input type="number" id="x0n" min="-60" max="60" step="1" value="30" />
-      </div>
-
-      <div class="row">
-        <div>
-          <label>初始速度 v₀ (Å/ps — 相對單位)</label>
-          <input type="range" id="v0" min="-200" max="200" step="1" value="0" />
-        </div>
-        <input type="number" id="v0n" min="-200" max="200" step="1" value="0" />
-      </div>
-
-      <div class="row">
-        <div>
-          <label>時間步長 dt (ps)</label>
-          <input type="range" id="dt" min="0.1" max="5" step="0.1" value="1.0" />
-        </div>
-        <input type="number" id="dtn" min="0.1" max="5" step="0.1" value="1.0" />
+        <select id="preset">
+          <option value="n1">基態 n=1</option>
+          <option value="n2">第一激發 n=2</option>
+          <option value="super12">疊加 n=1 & n=2（拍頻）</option>
+          <option value="super13">疊加 n=1 & n=3（對稱節點）</option>
+          <option value="packet">類波包（高斯係數）</option>
+        </select>
       </div>
 
       <div class="btns">
-        <button id="play" class="primary">▶  開始 / 暫停</button>
-        <button id="reset">⟲ 重設</button>
-        <button id="energy" title="能量顯示切換">Σ 能量</button>
-        <button id="damp" class="warn" title="快速加阻尼以收斂">☔ 快速阻尼</button>
+        <button id="play" class="primary">▶ 開始 / 暫停</button>
+        <button id="reset">⟲ 重設時間</button>
+        <button id="random" class="warn">🎲 隨機係數</button>
       </div>
 
-      <div style="padding:6px 12px 12px; font-size:13px; color:var(--muted)">
-        小技巧：將 <b>m₁=16, m₂=1</b> 模擬 <i>OH</i>；或 <b>m₁=12, m₂=16</b> 模擬 <i>CO</i>。改變 <b>k</b> 可對應鍵強度，<b>c</b> 代表環境阻尼。
+      <div style="padding:4px 10px 12px;font-size:12px;color:var(--muted)">
+        提示：選「疊加」可看到機率密度的時間振盪；選「實/虛部」可對應到相位演化與駐波型態。系統自動將 <code>c_n</code> 正規化使 \(\sum |c_n|^2 = 1\)。
       </div>
     </section>
 
     <section class="panel scene">
       <div class="legend">
-        <span class="dot k"></span><span>動能 K</span>
-        <span class="dot u"></span><span>位能 U</span>
-        <span class="dot e"></span><span>總能 E</span>
+        <span class="dot pr"></span><span>|ψ|²</span>
+        <span class="dot re"></span><span>Re ψ</span>
+        <span class="dot im"></span><span>Im ψ</span>
       </div>
       <canvas id="sim"></canvas>
       <div class="stats">
-        <div class="card"><div>角頻率 ω ≈ <span class="kpi" id="omega">—</span> <span class="unit">(相對單位)</span></div><div class="bar"><i id="wbar"></i></div></div>
-        <div class="card"><div>動能 K = <span class="kpi" id="K">—</span></div><div class="bar"><i id="kbar"></i></div></div>
-        <div class="card"><div>位能 U = <span class="kpi" id="U">—</span></div><div class="bar"><i id="ubar"></i></div></div>
-        <div class="card"><div>總能 E = <span class="kpi" id="E">—</span></div><div class="bar"><i id="ebar"></i></div></div>
+        <div class="card"><div>⟨x⟩ = <span class="kpi" id="xexp">—</span> <span class="unit">(相對單位)</span></div></div>
+        <div class="card"><div>Ē = <span class="kpi" id="Ebar">—</span> <span class="unit">(以 ħ=1 單位)</span></div></div>
+        <div class="card"><div>當前模態最高 n = <span class="kpi" id="nmax">—</span></div></div>
+        <div class="card"><div>時間 t = <span class="kpi" id="time">0.000</span></div></div>
       </div>
     </section>
   </div>
 
   <footer>
-    © 2025 Diatomic Vibration • 教學用相對單位。模型：相對座標 <code>x</code> 的 RK4 積分；個別原子位置由質心守恆推回：
-    <code>d₁ = m₂/(m₁+m₂)·(L₀+x)</code>、<code>d₂ = m₁/(m₁+m₂)·(L₀+x)</code>。
+    © 2025 1D Infinite Well 模擬。採解析展開 <code>ψ(x,t)=\sum c_n φ_n(x) e^{-iE_n t/ħ}</code>，<code>φ_n=√(2/L) sin(nπx/L)</code>。以 <code>ħ=1</code>。數值格點積分估 <code>⟨x⟩</code> 與平均能量。
   </footer>
 
   <script>
     const $ = (id)=>document.getElementById(id);
 
-    // --- UI wiring: keep sliders and number inputs in sync
-    const pairs = [["m1","m1n"],["m2","m2n"],["k","kn"],["c","cn"],["L0","L0n"],["x0","x0n"],["v0","v0n"],["dt","dtn"]];
+    // --- sync paired inputs (range + number)
+    const pairs=[["L","Ln"],["m","mn"],["Nmax","Nmaxn"],["speed","speedn"]];
     for(const [r,n] of pairs){
-      const R=$(r), N=$(n);
-      const sync = (a,b)=>()=>{ b.value=a.value; changed(); };
-      R.addEventListener('input', sync(R,N));
-      N.addEventListener('input', ()=>{ R.value=N.value; changed(); });
+      const R=$(r), N=$(n); const sync=(a,b)=>()=>{b.value=a.value; onParam();};
+      R.addEventListener('input', sync(R,N)); N.addEventListener('input', ()=>{R.value=N.value; onParam();});
     }
 
-    // --- Simulation state (relative coordinate x)
-    let state = {
-      x: parseFloat($("x0").value),
-      v: parseFloat($("v0").value),
-      t: 0
-    };
+    // state
+    let t=0, playing=false;
+    const playBtn=$("play");
+    playBtn.onclick=()=>{ playing=!playing; playBtn.textContent = playing? '⏸ 暫停':'▶ 開始'; if(playing) loop(); };
+    $("reset").onclick=()=>{ t=0; };
+
+    // coefficients c_n (complex via magnitude + phase); store as {a,phi}
+    let coeff = []; // indices 1..Nmax inclusive
 
     function params(){
-      const m1=+$("m1").value, m2=+$("m2").value;
-      const mu = m1*m2/(m1+m2);
-      const k=+$("k").value, c=+$("c").value;
-      const L0=+$("L0").value, dt=+$("dt").value*0.001; // smaller numerical dt (scale ps→ns)
-      return {m1,m2,mu,k,c,L0,dt};
+      const L=+$("L").value, m=+$("m").value, Nmax=+$("Nmax").value, speed=+$("speed").value;
+      return {L,m,Nmax,speed};
     }
 
-    // --- RK4 for x'' = -(c/μ) x' -(k/μ) x
-    function deriv(p, s){
-      return { dx: s.v, dv: (-(p.c/p.mu)*s.v - (p.k/p.mu)*s.x) };
+    function ensureCoeff(){
+      const {Nmax}=params();
+      if(coeff.length < Nmax+1){ for(let n=coeff.length; n<=Nmax; n++) coeff[n] = {a:0, phi:0}; }
+      // if shrink N, keep array but ignore higher n
     }
 
-    function rk4Step(p, s, h){
-      const k1 = deriv(p,s);
-      const s2 = { x: s.x + 0.5*h*k1.dx, v: s.v + 0.5*h*k1.dv };
-      const k2 = deriv(p,s2);
-      const s3 = { x: s.x + 0.5*h*k2.dx, v: s.v + 0.5*h*k2.dv };
-      const k3 = deriv(p,s3);
-      const s4 = { x: s.x + h*k3.dx, v: s.v + h*k3.dv };
-      const k4 = deriv(p,s4);
-      s.x += (h/6)*(k1.dx + 2*k2.dx + 2*k3.dx + k4.dx);
-      s.v += (h/6)*(k1.dv + 2*k2.dv + 2*k3.dv + k4.dv);
-      s.t += h;
+    // presets
+    function setPreset(kind){
+      const {Nmax}=params(); ensureCoeff();
+      for(let n=1;n<coeff.length;n++) coeff[n].a=0, coeff[n].phi=0;
+      if(kind==='n1'){ coeff[1].a=1; }
+      else if(kind==='n2'){ coeff[2].a=1; }
+      else if(kind==='super12'){ coeff[1].a=1; coeff[2].a=1; coeff[2].phi=0; }
+      else if(kind==='super13'){ coeff[1].a=1; coeff[3].a=1; }
+      else if(kind==='packet'){
+        // Gaussian around n0 ~ Nmax*0.6
+        const n0=Math.max(2, Math.round(Nmax*0.6)); const sigma=Math.max(0.8, Nmax*0.18);
+        for(let n=1;n<=Nmax;n++){ const w=Math.exp(-0.5*((n-n0)/sigma)**2); coeff[n].a=w; coeff[n].phi=0; }
+      }
+      normalize();
     }
 
-    // --- Canvas rendering
-    const cvs = $("sim"), ctx = cvs.getContext('2d');
-    const DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
-    function resize(){
-      const r = cvs.getBoundingClientRect();
-      cvs.width = Math.floor(r.width*DPR);
-      cvs.height = Math.floor(r.height*DPR);
+    function normalize(){
+      const {Nmax}=params();
+      let s=0; for(let n=1;n<=Nmax;n++) s += coeff[n].a*coeff[n].a;
+      const inv = s>0? 1/Math.sqrt(s):1; for(let n=1;n<=Nmax;n++) coeff[n].a*=inv;
     }
+
+    $("preset").addEventListener('change', (e)=>{ setPreset(e.target.value); });
+    $("random").onclick=()=>{ const {Nmax}=params(); ensureCoeff(); for(let n=1;n<=Nmax;n++){ coeff[n].a=Math.random(); coeff[n].phi=(Math.random()*2*Math.PI); } normalize(); };
+
+    // amps master knob: scale all amplitudes before normalization (as a visual control)
+    $("amps").addEventListener('input', ()=>{ const {Nmax}=params(); const g=+$("amps").value; for(let n=1;n<=Nmax;n++){ coeff[n].a = Math.pow(n<=3?1:0.6, 1)*g; } normalize(); });
+
+    function onParam(){ ensureCoeff(); render(); }
+
+    // canvas
+    const cvs=$("sim"), ctx=cvs.getContext('2d');
+    const DPR=Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    function resize(){ const r=cvs.getBoundingClientRect(); cvs.width=Math.floor(r.width*DPR); cvs.height=Math.floor(r.height*DPR); render(); }
     window.addEventListener('resize', resize); resize();
 
-    function drawAtom(x,y,r,fill){
-      const g = ctx.createRadialGradient(x-r*0.4,y-r*0.6, r*0.2, x,y,r);
-      g.addColorStop(0, fill);
-      g.addColorStop(1, '#0a1122');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = r*0.08; ctx.stroke();
-    }
+    // eigen functions and energies
+    const hbar = 1.0; // units
+    function En(n,m,L){ return (n*n*Math.PI*Math.PI*hbar*hbar)/(2*m*L*L); }
 
-    function drawSpring(x1,y1,x2,y2,n=16){
-      const dx = x2-x1, dy=y2-y1; const L = Math.hypot(dx,dy);
-      const ux=dx/L, uy=dy/L; const amp = Math.min(12*DPR, L*0.07);
-      const left = 18*DPR, right = 18*DPR;
-      const ax = x1+ux*left, ay=y1+uy*left; const bx = x2-ux*right, by=y2-uy*right;
-      ctx.strokeStyle = '#9fd3ff'; ctx.lineWidth = 2*DPR; ctx.beginPath(); ctx.moveTo(x1,y1);
-      ctx.lineTo(ax,ay);
-      for(let i=0;i<=n;i++){
-        const t=i/n; const px=ax + (bx-ax)*t; const py=ay + (by-ay)*t;
-        const nx=-uy, ny=ux; const s = (i%2?1:-1);
-        const off = (i===0||i===n)?0:amp*s;
-        ctx.lineTo(px+nx*off, py+ny*off);
+    // compute psi(x,t) on grid
+    const GRID=800; // spatial samples
+    let viewMode='prob';
+    $("view").addEventListener('change', e=>{ viewMode=e.target.value; render(); });
+
+    function compute(){
+      const {L,m,Nmax}=params();
+      const dx=L/GRID;
+      const prob=new Float32Array(GRID+1);
+      const rex=new Float32Array(GRID+1);
+      const imx=new Float32Array(GRID+1);
+      // average energy and <x>
+      let Ebar=0; for(let n=1;n<=Nmax;n++){ const w=coeff[n].a*coeff[n].a; Ebar += w*En(n,m,L); }
+      // superposition at time t
+      for(let i=0;i<=GRID;i++){
+        const x=i*dx; let re=0, im=0;
+        for(let n=1;n<=Nmax;n++){
+          const a=coeff[n].a, ph=coeff[n].phi;
+          if(a===0) continue;
+          const kn=n*Math.PI/L; const phi_x = Math.sqrt(2/L)*Math.sin(kn*x);
+          const w=En(n,m,L)/hbar; // angular frequency
+          const ang = ph - w*t; // e^{-i w t} factor
+          re += a * phi_x * Math.cos(ang);
+          im += a * phi_x * Math.sin(ang) * (-1); // because e^{-iwt} = cos - i sin
+        }
+        rex[i]=re; imx[i]=im; prob[i]=re*re+im*im;
       }
-      ctx.lineTo(x2,y2); ctx.stroke();
+      // expectation <x>
+      let xexp=0, norm=0; for(let i=0;i<=GRID;i++){ const x=i*dx; const p=prob[i]; xexp += x*p; norm += p; }
+      xexp /= (norm>0? norm:1);
+      return {dx, prob, rex, imx, Ebar, xexp};
     }
 
-    // --- Energy bars
-    function setBar(id, frac){ $(id).style.width = (100*Math.max(0,Math.min(1,frac))).toFixed(1)+"%"; }
+    function drawAxes(pad, xmin, xmax, ymin, ymax){
+      const w=cvs.width, h=cvs.height; ctx.save();
+      ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=1*DPR;
+      // box interior
+      ctx.strokeRect(pad, pad, w-2*pad, h-2*pad);
+      // vertical ticks
+      for(let k=0;k<=10;k++){
+        const x=pad + (w-2*pad)*k/10; ctx.beginPath(); ctx.moveTo(x,h-pad); ctx.lineTo(x,h-pad-6*DPR); ctx.stroke();
+      }
+      ctx.restore();
+    }
 
-    // --- Main animation
-    let playing = false, showEnergy=true, req=0;
-    const playBtn=$("play"), resetBtn=$("reset"), energyBtn=$("energy"), dampBtn=$("damp");
-
-    playBtn.onclick = ()=>{ playing = !playing; playBtn.textContent = playing? '⏸ 暫停':'▶ 開始'; if(playing) loop(); };
-    resetBtn.onclick = ()=>{ state.x=parseFloat($("x0").value); state.v=parseFloat($("v0").value); state.t=0; };
-    energyBtn.onclick = ()=>{ showEnergy=!showEnergy; energyBtn.style.opacity = showEnergy?1:0.5; };
-    dampBtn.onclick = ()=>{ $("c").value = $("cn").value = Math.max(+$("c").value, 20); changed(); };
-
-    function changed(){ if(!playing) render(); }
+    function drawCurve(arr, color, pad, scaleY){
+      const w=cvs.width, h=cvs.height; const W=w-2*pad, H=h-2*pad;
+      ctx.beginPath();
+      for(let i=0;i<arr.length;i++){
+        const x=pad + W*i/(arr.length-1);
+        const y= h - pad - Math.max(-H*0.48, Math.min(H*0.48, arr[i]*scaleY));
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle=color; ctx.lineWidth=2*DPR; ctx.stroke();
+    }
 
     function render(){
-      const p = params();
-      // background
-      ctx.clearRect(0,0,cvs.width,cvs.height);
+      const {L,m,Nmax}=params();
+      $("nmax").textContent=Nmax;
+      const w=cvs.width, h=cvs.height; ctx.clearRect(0,0,w,h);
+      const pad=16*DPR;
+      drawAxes(pad, 0,L, 0,1);
 
-      // geometry
-      const cx = cvs.width*0.5, cy = cvs.height*0.55;
-      const scale = Math.min(cvs.width*0.32, cvs.height*0.30);
-      const L = p.L0 + state.x; // current bond length in relative units
-      const d1 = (p.m2/(p.m1+p.m2))*L; // distance from COM for atom 1
-      const d2 = (p.m1/(p.m1+p.m2))*L; // distance from COM for atom 2
-      const x1 = cx - d1/ p.L0 * scale; // map to pixels roughly via L0 scale
-      const x2 = cx + d2/ p.L0 * scale;
+      const {prob,rex,imx,Ebar,xexp}=compute();
+      $("Ebar").textContent=Ebar.toFixed(3);
+      $("xexp").textContent=xexp.toFixed(3);
+      $("time").textContent=t.toFixed(3);
 
-      // axis line
-      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1*DPR;
-      ctx.beginPath(); ctx.moveTo(cx - 0.65*scale, cy); ctx.lineTo(cx + 0.65*scale, cy); ctx.stroke();
+      // scale Y so that probability density fits nicely
+      // find max of prob and of |Re|,|Im|
+      let pmax=1e-9, rmax=1e-9;
+      for(let i=0;i<prob.length;i++){ if(prob[i]>pmax) pmax=prob[i]; const a=Math.max(Math.abs(rex[i]), Math.abs(imx[i])); if(a>rmax) rmax=a; }
+      const probScale = (h-2*pad)*0.9 / pmax; // map max to ~90% height
+      const waveScale = (h-2*pad)*0.9 / (2*rmax);
 
-      // spring
-      drawSpring(x1, cy, x2, cy);
+      const W=w-2*pad; // draw walls and well bottom label
+      ctx.fillStyle='rgba(255,255,255,.2)';
+      ctx.fillRect(pad-3*DPR, pad, 3*DPR, h-2*pad);
+      ctx.fillRect(w-pad, pad, 3*DPR, h-2*pad);
 
-      // atoms (radius ~ mass^(1/3))
-      const r1 = Math.max(10*DPR, 16*DPR*Math.cbrt(p.m1)/Math.cbrt(32));
-      const r2 = Math.max(10*DPR, 16*DPR*Math.cbrt(p.m2)/Math.cbrt(32));
-      drawAtom(x1, cy, r1, '#78e08f');
-      drawAtom(x2, cy, r2, '#ff9fbf');
+      // optional grid of eigenfunction nodes
+      ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1*DPR; ctx.setLineDash([3*DPR, 3*DPR]);
+      for(let j=1;j<=Nmax;j++){
+        // show nodes for the highest mode (just subtle)
+        const nodes=j-1; if(nodes<=0) continue; for(let s=1;s<=nodes;s++){ const x=pad + W*s/j; ctx.beginPath(); ctx.moveTo(x,pad); ctx.lineTo(x,h-pad); ctx.stroke(); }
+      }
+      ctx.setLineDash([]);
 
-      // energy + readings
-      const K = 0.5*p.mu*state.v*state.v; // kinetic in relative coord
-      const U = 0.5*p.k*state.x*state.x;
-      const E = K+U;
-
-      $("K").textContent = K.toFixed(2);
-      $("U").textContent = U.toFixed(2);
-      $("E").textContent = E.toFixed(2);
-
-      // pseudo omega (underdamped): sqrt(k/μ - (c/2μ)^2) when positive
-      const und = (p.k/p.mu) - Math.pow(p.c/(2*p.mu),2);
-      const omega = und>0? Math.sqrt(und): 0;
-      $("omega").textContent = omega.toFixed(2);
-
-      // bars scale by a soft normalizer
-      const norm = 1 + E; // simple normalization
-      setBar("kbar", K/norm); setBar("ubar", U/norm); setBar("ebar", E/(norm*0.8));
-      setBar("wbar", Math.min(1, omega/50));
-
-      if(showEnergy){
-        // simple energy trails as vertical bars at top-right
-        const w = Math.min(160*DPR, cvs.width*0.18), h = 90*DPR, pad = 10*DPR;
-        const x = cvs.width - w - pad, y = pad;
-        ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x-6,y-6,w+12,h+12); ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.strokeRect(x-6,y-6,w+12,h+12);
-        const kf = Math.min(1, K/(norm));
-        const uf = Math.min(1, U/(norm));
-        const ef = Math.min(1, E/(norm*0.8));
-        ctx.fillStyle = '#7ad87a'; ctx.fillRect(x, y+h*(1-kf), w/3-6, h*kf);
-        ctx.fillStyle = '#ff8ab4'; ctx.fillRect(x+w/3, y+h*(1-uf), w/3-6, h*uf);
-        ctx.fillStyle = '#66e3ff'; ctx.fillRect(x+2*w/3, y+h*(1-ef), w/3-6, h*ef);
+      // curves according to view mode
+      if(viewMode==='prob' || viewMode==='both') drawCurve(prob, '#79e0a8', pad, probScale);
+      if(viewMode==='reim' || viewMode==='both'){
+        drawCurve(rex, '#9ee2ff', pad, waveScale);
+        drawCurve(imx, '#ffd166', pad, waveScale);
       }
 
-      // labels
-      ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = `${12*DPR}px system-ui`;
-      ctx.fillText(`t = ${state.t.toFixed(3)} (arb.)`, 12*DPR, 18*DPR);
-      ctx.fillText(`x = ${state.x.toFixed(2)}  v = ${state.v.toFixed(2)}`, 12*DPR, 34*DPR);
+      // x expectation marker
+      const xpix = pad + W*(xexp/L);
+      ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.beginPath(); ctx.moveTo(xpix, h-pad); ctx.lineTo(xpix, pad); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.8)'; ctx.font=`${12*DPR}px system-ui`; ctx.fillText(`⟨x⟩`, xpix+6*DPR, pad+14*DPR);
+
+      // energy ladder on the right
+      const ladderX = w - pad - 80*DPR, ladderY=pad+10*DPR, ladderH = h-2*pad-20*DPR;
+      ctx.fillStyle='rgba(255,255,255,.1)'; ctx.fillRect(ladderX-10*DPR, ladderY-8*DPR, 90*DPR, ladderH+16*DPR);
+      for(let n=1;n<=Math.min(Nmax,8);n++){
+        const Enorm = En(n,m,L); const y = ladderY + ladderH*(1 - Enorm/(En(Nmax,m,L)));
+        ctx.strokeStyle='#66e3ff'; ctx.beginPath(); ctx.moveTo(ladderX, y); ctx.lineTo(ladderX+60*DPR, y); ctx.stroke();
+        ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font=`${11*DPR}px system-ui`; ctx.fillText(`n=${n}`, ladderX+64*DPR, y+4*DPR);
+      }
     }
 
-    function step(){
-      const p = params();
-      const substeps = 4; // improve stability
-      const h = p.dt / substeps;
-      for(let i=0;i<substeps;i++) rk4Step(p, state, h);
-    }
-
-    function loop(){
-      if(!playing){ cancelAnimationFrame(req); return; }
-      step(); render();
-      req = requestAnimationFrame(loop);
-    }
+    function step(){ const {speed}=params(); t += 0.02*speed; }
+    function loop(){ if(!playing) return; step(); render(); requestAnimationFrame(loop); }
 
     // init
-    render();
-    // keyboard shortcuts
-    window.addEventListener('keydown', (e)=>{
-      if(e.code==='Space'){ playBtn.click(); e.preventDefault(); }
-      if(e.key==='r'){ resetBtn.click(); }
-    });
+    ensureCoeff(); setPreset('n1'); render();
+    window.addEventListener('keydown', (e)=>{ if(e.code==='Space'){ playBtn.click(); e.preventDefault(); } });
   </script>
 </body>
 </html>
+
+
