@@ -50,7 +50,7 @@ const canvas = document.getElementById("box");
 const ctx = canvas.getContext("2d");
 const chartCanvas = document.getElementById("velChart");
 const chartCtx = chartCanvas.getContext("2d");
-const canvasSize = 500;
+
 
 let N = 30, T = 200;
 let particles = [];
@@ -68,6 +68,17 @@ document.getElementById("tempSlider").oninput = function(){
   resetParticles();
 };
 
+let V = canvasSize; // 原本 canvasSize 代表盒子大小
+
+document.getElementById("volumeSlider").oninput = function() {
+  V = +this.value;
+  document.getElementById("volumeVal").textContent = V;
+  // 更新畫布大小時保持畫面一致
+  canvas.width = V;
+  canvas.height = V;
+  resetParticles(); // 重新生成粒子
+};
+  
 class Particle{
   constructor(x,y,vx,vy,r=5){
     this.x=x; this.y=y;
@@ -81,14 +92,14 @@ class Particle{
     if(this.x - this.r < 0){
       this.x = this.r; this.vx*=-1; momentumTransfer+=2*Math.abs(this.vx);
     }
-    if(this.x + this.r > canvasSize){
-      this.x = canvasSize - this.r; this.vx*=-1; momentumTransfer+=2*Math.abs(this.vx);
+    if(this.x + this.r >V){
+      this.x = V - this.r; this.vx*=-1; momentumTransfer+=2*Math.abs(this.vx);
     }
     if(this.y - this.r < 0){
       this.y = this.r; this.vy*=-1; momentumTransfer+=2*Math.abs(this.vy);
     }
-    if(this.y + this.r > canvasSize){
-      this.y = canvasSize - this.r; this.vy*=-1; momentumTransfer+=2*Math.abs(this.vy);
+    if(this.y + this.r > V){
+      this.y = V - this.r; this.vy*=-1; momentumTransfer+=2*Math.abs(this.vy);
     }
   }
   draw(){
