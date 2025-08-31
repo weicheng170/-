@@ -68,7 +68,7 @@ document.getElementById("tempSlider").oninput = function(){
   resetParticles();
 };
 
-let V = canvasSize; // 原本 canvasSize 代表盒子大小
+let V = V; // 原本 canvasSize 代表盒子大小
 
 document.getElementById("volumeSlider").oninput = function() {
   V = +this.value;
@@ -119,8 +119,8 @@ function resetParticles(){
     let overlap;
     do{
       overlap=false;
-      x = Math.random()*(canvasSize-2*r)+r;
-      y = Math.random()*(canvasSize-2*r)+r;
+      x = Math.random()*(V-2*r)+r;
+      y = Math.random()*(V-2*r)+r;
       for(let p of particles){
         if(Math.hypot(p.x-x,p.y-y)<2*r){ overlap=true; break; }
       }
@@ -173,15 +173,15 @@ function drawVelocityChart(){
   }
 
   const barWidth = chartCanvas.width/binCount;
-  velChartCtx.beginPath();
-velChartCtx.strokeStyle = "orange";
+  ChartCtx.beginPath();
+ChartCtx.strokeStyle = "orange";
 for(let i=0;i<binCount;i++){
-    const x = i * velChart.width / (binCount-1);
-    const y = velChart.height - (bins[i]/N*velChart.height);
-    if(i===0) velChartCtx.moveTo(x,y);
-    else velChartCtx.lineTo(x,y);
+    const x = i * Chart.width / (binCount-1);
+    const y = Chart.height - (bins[i]/N*Chart.height);
+    if(i===0) ChartCtx.moveTo(x,y);
+    else ChartCtx.lineTo(x,y);
 }
-velChartCtx.stroke();
+ChartCtx.stroke();
 
 
   // 標記平均/方均根/最大速率
