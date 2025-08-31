@@ -2,79 +2,176 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>盒中氣體分子模擬</title>
+<title>氣體模擬 - 粒子碰撞與速率分佈</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body { font-family: sans-serif; }
-  canvas { border: 1px solid black; }
-  .controls { margin-top: 10px; }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 10px;
+  }
+  #container {
+    display: flex;
+    gap: 20px;
+    width: 95%;
+  }
+  #simulation {
+    background: white;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  #controls {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    width: 400px;
+  }
+  canvas {
+    background: #222;
+    border-radius: 10px;
+    display: block;
+  }
+  .slider-container {
+    margin: 12px 0;
+  }
+  label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+  input[type=range] {
+    width: 100%;
+  }
+  #info {
+    margin-top: 10px;
+    font-size: 14px;
+  }
 </style>
 </head>
 <body>
-<h2>盒中氣體分子模擬</h2>
-<canvas id="boxCanvas" width="500" height="500"></canvas>
-<canvas id="chartCanvas" width="500" height="300"></canvas>
+<div id="container">
+  <!-- 左邊模擬 -->
+  <div id="simulation">
+    <canvas id="simCanvas" width="500" height="500"></canvas>
+  </div>
 
-<div class="controls">
-  <label>粒子數 N: <input type="range" id="sliderN" min="10" max="200" value="50"></label>
-  <span id="valN">50</span><br>
-  <label>溫度 T: <input type="range" id="sliderT" min="50" max="500" value="200"></label>
-  <span id="valT">200</span><br>
-  <label>體積 V (盒子大小): <input type="range" id="sliderV" min="200" max="500" value="400"></label>
-  <span id="valV">400</span><br>
+  <!-- 右邊控制與圖表 -->
+  <div id="controls">
+    <h3>控制參數</h3>
+    <div class="slider-container">
+      <label>N (粒子數量): <span id="nValue">50</span></label>
+      <input type="range" id="nSlider" min="10" max="200" value="50">
+    </div>
+    <div class="slider-container">
+      <label>T (溫度): <span id="tValue">1.0</span></label>
+      <input type="range" id="tSlider" min="0.5" max="3" step="0.1" value="1">
+    </div>
+    <div class="slider-container">
+      <label>V (盒子大小): <span id="vValue">500</span></label>
+      <input type="range" id="vSlider" min="300" max="700" step="10" value="500">
+    </div>
+    <h3>速率分佈</h3>
+    <canvas id="chartCanvas" width="400" height="300"></canvas>
+    <div id="info"></div>
+  </div>
 </div>
 
 <script>
-const canvas = document.getElementById("boxCanvas");
-const ctx = canvas.getContext("2d");
+const simCanvas = document.getElementById("simCanvas");
+const ctx = simCanvas.getContext("2d");
 
-let N = 50, T = 200, V = 400;
+let N = 50;
+let T = 1.0;
+let boxSize = 500;
+const radius = 4;
+
 let particles = [];
-let boxSize = V;
-const particleRadius = 3;
 
-function randomVelocity(T) {
-  let v = Math.sqrt(T) * (Math.random() * 2 - 1);
-  return v;
-}
-
+// 初始化粒子
 function initParticles() {
   particles = [];
   for (let i = 0; i < N; i++) {
+    let angle = Math.random() * 2 * Math.PI;
+    let speed = Math.sqrt(-2 * T * Math.log(Math.random())); // Maxwell-Boltzmann 隨機速率
+    let vx = speed * Math.cos(angle);
+    let vy = speed * Math.sin(angle);
     particles.push({
-      x: Math.random() * boxSize,
-      y: Math.random() * boxSize,
-      vx: randomVelocity(T),
-      vy: randomVelocity(T)
+      x: Math.random() * (boxSize - 2*radius) + radius,
+      y: Math.random() * (boxSize - 2*radius) + radius,
+      vx: vx,
+      vy: vy
     });
   }
 }
 
+// 更新粒子
 function updateParticles() {
-  for (let p of particles) {
+  for (let i = 0; i < particles.length; i++) {
+    let p = particles[i];
     p.x += p.vx;
     p.y += p.vy;
 
-    // 撞牆
-    if (p.x < 0 || p.x > boxSize) p.vx *= -1;
-    if (p.y < 0 || p.y > boxSize) p.vy *= -1;
+    // 與牆壁碰撞
+    if (p.x < radius || p.x > boxSize - radius) p.vx *= -1;
+    if (p.y < radius || p.y > boxSize - radius) p.vy *= -1;
+
+    // 粒子之間的碰撞
+    for (let j = i + 1; j < particles.length; j++) {
+      let q = particles[j];
+      let dx = q.x - p.x;
+      let dy = q.y - p.y;
+      let dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 2*radius) {
+        // 彈性碰撞
+        let nx = dx / dist, ny = dy / dist;
+        let pDot = p.vx*nx + p.vy*ny;
+        let qDot = q.vx*nx + q.vy*ny;
+
+        let diff = pDot - qDot;
+        p.vx -= diff*nx;
+        p.vy -= diff*ny;
+        q.vx += diff*nx;
+        q.vy += diff*ny;
+
+        // 避免重疊
+        let overlap = 2*radius - dist;
+        p.x -= nx * overlap/2;
+        p.y -= ny * overlap/2;
+        q.x += nx * overlap/2;
+        q.y += ny * overlap/2;
+      }
+    }
   }
 }
 
+// 畫出粒子
 function drawParticles() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeRect(0, 0, boxSize, boxSize);
-  ctx.fillStyle = "blue";
+  ctx.clearRect(0,0,simCanvas.width,simCanvas.height);
+  ctx.strokeStyle = "white";
+  ctx.strokeRect(0,0,boxSize,boxSize);
+
+  ctx.fillStyle = "cyan";
   for (let p of particles) {
     ctx.beginPath();
-    ctx.arc(p.x, p.y, particleRadius, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, radius, 0, 2*Math.PI);
     ctx.fill();
   }
 }
 
-// ================= 分佈圖 =================
+// 計算速率分佈
+function getSpeeds() {
+  return particles.map(p => Math.sqrt(p.vx*p.vx + p.vy*p.vy));
+}
+
+// 更新圖表
 const chartCtx = document.getElementById("chartCanvas").getContext("2d");
-const chart = new Chart(chartCtx, {
+let speedChart = new Chart(chartCtx, {
   type: 'line',
   data: {
     labels: [],
@@ -87,70 +184,72 @@ const chart = new Chart(chartCtx, {
     }]
   },
   options: {
+    animation: false,
     responsive: false,
     scales: {
-      x: { title: { display: true, text: "速率" } },
-      y: { title: { display: true, text: "粒子數" } }
+      x: { title: { display: true, text: '速度' } },
+      y: { title: { display: true, text: '數量' } }
     }
   }
 });
 
 function updateChart() {
-  let speeds = particles.map(p => Math.sqrt(p.vx**2 + p.vy**2));
-
-  let maxSpeed = Math.max(...speeds);
-  let bins = 20;
-  let step = maxSpeed / bins;
-  let counts = new Array(bins).fill(0);
-
+  let speeds = getSpeeds();
+  let bins = 30;
+  let maxV = Math.max(...speeds, 1);
+  let hist = new Array(bins).fill(0);
   for (let v of speeds) {
-    let idx = Math.min(bins - 1, Math.floor(v / step));
-    counts[idx]++;
+    let idx = Math.floor(v/maxV*bins);
+    if (idx >= bins) idx = bins-1;
+    hist[idx]++;
   }
 
-  let labels = counts.map((_, i) => (i * step).toFixed(1));
-  chart.data.labels = labels;
-  chart.data.datasets[0].data = counts;
-  chart.update();
+  let labels = Array.from({length: bins}, (_,i)=> (i/bins*maxV).toFixed(1));
+  speedChart.data.labels = labels;
+  speedChart.data.datasets[0].data = hist;
+  speedChart.update();
 
-  // 計算平均, rms, 最大
-  let avg = speeds.reduce((a,b)=>a+b,0) / speeds.length;
-  let rms = Math.sqrt(speeds.reduce((a,b)=>a+b**2,0)/speeds.length);
+  // 平均、RMS、最大
+  let avg = speeds.reduce((a,b)=>a+b,0)/speeds.length;
+  let rms = Math.sqrt(speeds.reduce((a,b)=>a+b*b,0)/speeds.length);
   let max = Math.max(...speeds);
 
-  ctx.fillStyle = "black";
-  ctx.fillText(`平均速率=${avg.toFixed(2)}`, 10, boxSize+20);
-  ctx.fillText(`均方根速率=${rms.toFixed(2)}`, 10, boxSize+40);
-  ctx.fillText(`最大速率=${max.toFixed(2)}`, 10, boxSize+60);
+  document.getElementById("info").innerHTML = 
+    `平均速率 = ${avg.toFixed(2)} <br>
+     均方根速率 = ${rms.toFixed(2)} <br>
+     最大速率 = ${max.toFixed(2)}`;
 }
 
-function loop() {
+// 主循環
+function animate() {
   updateParticles();
   drawParticles();
   updateChart();
-  requestAnimationFrame(loop);
+  requestAnimationFrame(animate);
 }
 
-// 控制器
-document.getElementById("sliderN").oninput = e => {
-  N = parseInt(e.target.value);
-  document.getElementById("valN").textContent = N;
+// slider 控制
+document.getElementById("nSlider").oninput = function() {
+  N = parseInt(this.value);
+  document.getElementById("nValue").textContent = N;
   initParticles();
-};
-document.getElementById("sliderT").oninput = e => {
-  T = parseInt(e.target.value);
-  document.getElementById("valT").textContent = T;
+}
+document.getElementById("tSlider").oninput = function() {
+  T = parseFloat(this.value);
+  document.getElementById("tValue").textContent = T;
   initParticles();
-};
-document.getElementById("sliderV").oninput = e => {
-  V = parseInt(e.target.value);
-  boxSize = V;
-  document.getElementById("valV").textContent = V;
+}
+document.getElementById("vSlider").oninput = function() {
+  boxSize = parseInt(this.value);
+  simCanvas.width = boxSize;
+  simCanvas.height = boxSize;
+  document.getElementById("vValue").textContent = boxSize;
   initParticles();
-};
+}
 
 initParticles();
-loop();
+animate();
 </script>
 </body>
 </html>
+
