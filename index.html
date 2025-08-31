@@ -68,7 +68,7 @@ document.getElementById("tempSlider").oninput = function(){
   resetParticles();
 };
 
-let V = V; // 原本 canvasSize 代表盒子大小
+let V = canvas.width; // 原本 canvasSize 代表盒子大小
 
 document.getElementById("volumeSlider").oninput = function() {
   V = +this.value;
@@ -176,8 +176,8 @@ function drawVelocityChart(){
   ChartCtx.beginPath();
 ChartCtx.strokeStyle = "orange";
 for(let i=0;i<binCount;i++){
-    const x = i * Chart.width / (binCount-1);
-    const y = Chart.height - (bins[i]/N*Chart.height);
+    const x = i * ChartCanvas.width / (binCount-1);
+    const y = ChartCanvas.height - (bins[i]/N*Chart.height);
     if(i===0) ChartCtx.moveTo(x,y);
     else ChartCtx.lineTo(x,y);
 }
