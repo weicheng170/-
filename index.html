@@ -206,7 +206,7 @@ function update(){
   momentumTransfer=0;
   for(let p of particles){ p.move(); p.draw(); }
   handleCollisions();
-  pressure = momentumTransfer/(4*canvasSize);
+  pressure = momentumTransfer/(4*V);
   document.getElementById("pressure").textContent=pressure.toFixed(2);
   drawVelocityChart();
   requestAnimationFrame(update);
