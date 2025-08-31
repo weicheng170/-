@@ -4,20 +4,14 @@
 <meta charset="UTF-8">
 <title>盒中氣體模擬</title>
 <style>
-  body { font-family: sans-serif; text-align: center; background: #f8f9fa; }
-  canvas { border: 2px solid #333; background: white; display:block; margin: 10px auto; }
-  .slider-container { margin: 10px; }
+body { font-family: sans-serif; text-align: center; background: #f8f9fa; }
+canvas { border: 2px solid #333; background: white; display:block; margin: 10px auto; }
+.slider-container { margin: 10px; }
 </style>
 </head>
 <body>
-<h2>盒中氣體模擬 (含粒子間碰撞)</h2>
+<h2>盒中氣體模擬 (粒子互碰)</h2>
 
-<div class="slider-container">
-  <label>體積 V:
-    <input type="range" id="volumeSlider" min="200" max="800" value="400">
-    <span id="volumeVal">400</span>
-  </label>
-</div>
 <div class="slider-container">
   <label>粒子數 N:
     <input type="range" id="particleSlider" min="10" max="100" value="30">
@@ -33,37 +27,114 @@
 
 <p>壓力 P: <span id="pressure">0</span></p>
 
-<canvas id="box" width="400" height="400"></canvas>
+<canvas id="box" width="500" height="500"></canvas>
 
 <script>
 const canvas = document.getElementById("box");
 const ctx = canvas.getContext("2d");
-let V = 400, N = 30, T = 200;
+const canvasSize = 500;
+let N = 30, T = 200;
 let particles = [];
 let pressure = 0;
 let momentumTransfer = 0;
 
-document.getElementById("volumeSlider").oninput = function() {
-  V = +this.value;
-  document.getElementById("volumeVal").textContent = V;
-  canvas.width = V; canvas.height = V;
-  resetParticles();
-}
-document.getElementById("particleSlider").oninput = function() {
+document.getElementById("particleSlider").oninput = function(){
   N = +this.value;
   document.getElementById("particleVal").textContent = N;
   resetParticles();
-}
-document.getElementById("tempSlider").oninput = function() {
+};
+document.getElementById("tempSlider").oninput = function(){
   T = +this.value;
   document.getElementById("tempVal").textContent = T;
   resetParticles();
+};
+
+class Particle{
+  constructor(x,y,vx,vy,r=5){
+    this.x=x; this.y=y;
+    this.vx=vx; this.vy=vy;
+    this.r=r;
+  }
+  move(){
+    this.x += this.vx;
+    this.y += this.vy;
+
+    if(this.x - this.r < 0){
+      this.x = this.r; this.vx*=-1; momentumTransfer+=2*Math.abs(this.vx);
+    }
+    if(this.x + this.r > canvasSize){
+      this.x = canvasSize - this.r; this.vx*=-1; momentumTransfer+=2*Math.abs(this.vx);
+    }
+    if(this.y - this.r < 0){
+      this.y = this.r; this.vy*=-1; momentumTransfer+=2*Math.abs(this.vy);
+    }
+    if(this.y + this.r > canvasSize){
+      this.y = canvasSize - this.r; this.vy*=-1; momentumTransfer+=2*Math.abs(this.vy);
+    }
+  }
+  draw(){
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    ctx.fillStyle="blue";
+    ctx.fill();
+  }
 }
 
-class Particle {
-  constructor(x, y, vx, vy, r=4) {
-    this.x = x; this.y = y;
-    this.vx = vx; this.vy = vy;
-    this.r = r;
+function resetParticles(){
+  particles=[];
+  for(let i=0;i<N;i++){
+    let r=5;
+    let x,y;
+    let overlap;
+    do{
+      overlap=false;
+      x = Math.random()*(canvasSize-2*r)+r;
+      y = Math.random()*(canvasSize-2*r)+r;
+      for(let p of particles){
+        if(Math.hypot(p.x-x,p.y-y)<2*r){ overlap=true; break; }
+      }
+    }while(overlap);
+    let angle=Math.random()*2*Math.PI;
+    let speed=Math.sqrt(T)*(Math.random()*0.5+0.5);
+    particles.push(new Particle(x,y,speed*Math.cos(angle),speed*Math.sin(angle),r));
   }
-  mov
+}
+
+function handleCollisions(){
+  for(let i=0;i<N;i++){
+    for(let j=i+1;j<N;j++){
+      let p1=particles[i], p2=particles[j];
+      let dx=p2.x-p1.x, dy=p2.y-p1.y;
+      let dist=Math.hypot(dx,dy);
+      let minDist=p1.r+p2.r;
+      if(dist<minDist){
+        let nx=dx/dist, ny=dy/dist;
+        let p1Proj=p1.vx*nx+p1.vy*ny;
+        let p2Proj=p2.vx*nx+p2.vy*ny;
+        let diff=p1Proj-p2Proj;
+        p1.vx-=diff*nx; p1.vy-=diff*ny;
+        p2.vx+=diff*nx; p2.vy+=diff*ny;
+        let overlap=(minDist-dist)/2;
+        p1.x-=nx*overlap; p1.y-=ny*overlap;
+        p2.x+=nx*overlap; p2.y+=ny*overlap;
+      }
+    }
+  }
+}
+
+function update(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  momentumTransfer=0;
+  for(let p of particles){ p.move(); p.draw(); }
+  handleCollisions();
+  pressure=momentumTransfer/(4*canvasSize);
+  document.getElementById("pressure").textContent=pressure.toFixed(2);
+  requestAnimationFrame(update);
+}
+
+resetParticles();
+update();
+</script>
+</body>
+</html>
+
