@@ -173,11 +173,16 @@ function drawVelocityChart(){
   }
 
   const barWidth = chartCanvas.width/binCount;
-  for(let i=0;i<binCount;i++){
-    const h = bins[i]/N*chartCanvas.height;
-    chartCtx.fillStyle="orange";
-    chartCtx.fillRect(i*barWidth, chartCanvas.height-h, barWidth-1, h);
-  }
+  velChartCtx.beginPath();
+velChartCtx.strokeStyle = "orange";
+for(let i=0;i<binCount;i++){
+    const x = i * velChart.width / (binCount-1);
+    const y = velChart.height - (bins[i]/N*velChart.height);
+    if(i===0) velChartCtx.moveTo(x,y);
+    else velChartCtx.lineTo(x,y);
+}
+velChartCtx.stroke();
+
 
   // 標記平均/方均根/最大速率
   chartCtx.strokeStyle="red"; chartCtx.beginPath();
